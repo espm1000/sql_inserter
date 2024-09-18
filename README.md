@@ -23,4 +23,4 @@ A simple pipeline/environment that will:
 
 | firstName | lastName | timestamp         |
 | --------- | -------- | ----------------- |
-| John      | Doe      | 2024-01-01 hh:mm:ss
+| John      | Doe      | `2024-01-01 hh:mm:ss` |
