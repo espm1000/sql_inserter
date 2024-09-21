@@ -2,7 +2,7 @@ data "aws_availability_zones" "available" {}
 
 locals {
   vpc_cidr         = "10.0.0.0/16"
-  azs              = slice(data.aws_availability_zones.available.names, 0, 3)
+  azs              = slice(data.aws_availability_zones.available.names, 0, 2)
   vpc_name         = "application_vpc"
   client_public_ip = "63.231.146.30/32"
   all_ip           = "0.0.0.0/0"
