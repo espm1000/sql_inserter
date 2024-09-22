@@ -7,15 +7,16 @@ from botocore.exceptions import ClientError
 
 sqs = boto3.resource('sqs')
 logger = logging.getLogger(__name__)
-logging.basicConfig()
-logging.getLogger().setLevel(logging.INFO)
+FORMAT = "[INFO: %(filename)s:%(lineno)s:%(funcName)s]::%(message)s"
+logging.basicConfig(format=FORMAT)
+logger.setLevel(logging.INFO)
 
 def get_queue(name):
     try:
         queue = sqs.get_queue_by_name(QueueName=name)
         logger.info("Got queue '%s' with URL=%s", name, queue.url)
     except ClientError as e:
-        logger.exception("Error.")
+        logger.exception("Something went wrong.")
         raise e
     else:
         return queue
@@ -27,7 +28,7 @@ def send_message(queue, body, attributes):
 
     try:
         response = queue.send_message(MessageBody=body, MessageAttributes=attributes)
-        logger.info("Sent message: %s", body)
+        logger.info("Sent message: '%s'", body)
     except ClientError as e:
         logger.exception("Failed: %s", body)
         raise e
@@ -46,3 +47,4 @@ def lambda_handler(event, message):
     else:
         return response
     
+lambda_handler("messages_queue", "foo")
