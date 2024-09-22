@@ -1,23 +1,18 @@
 import psycopg2 as pgsql
 import sys
 
-sys.tracebacklimit=0
+sys.tracebacklimit=1
 
-
-
-conn = pgsql.connect(database = "postgres",
+conn = pgsql.connect(database = "guest_book",
                      user     = "postgres",
                      password = "admin7818",
                      host     = "localhost",
                      port     = 5432)
 
-q_createTable = """CREATE TABLE guest_book(
-               firstName VARCHAR(50) NOT NULL,
-               lastName VARCHAR(50) NOT NULL,
-               timestamp date NOT NULL);
-               """
+conn.set_isolation_level(pgsql.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
-q_deleteTable = """DROP TABLE guest_book;"""
+file = "database/create_db.sql"
+q_createTable = open(file, "r").read()
 
 def run_query(query):
     cursor = conn.cursor()
@@ -32,6 +27,7 @@ def run_query(query):
     return response
 
 def delete_table(query):
+    cursor = conn.cursor()
     try:
         cursor.execute(query)
         conn.commit()
@@ -42,27 +38,19 @@ def delete_table(query):
 
 
 def create_database(query):
-    
+    cursor = conn.cursor()
     try:
         cursor.execute(query)
+        #response = cursor.fetchall()
         conn.commit()
         cursor.close()
         conn.close()
     except pgsql.OperationalError as e:
         print("Error: ", e)
 
+    return query
 
-
-def foo():
-    # Delete database
-    try:
-        response = delete_table(q_deleteTable)
-    except:
-        response = print("didnt work")
-    
-    return response
-
-def main():
+def main(query=None):
     print(f'Creating database...')
     try:
         create_database(q_createTable)
@@ -70,8 +58,11 @@ def main():
     except pgsql.OperationalError as e:
         response = print("Unable to create DB.", e)
 
+    more = input("Run query? ")
+    if more == "y":
+        response = run_query(query)
+
         return response
 
-
-#foo()
-#main()
+if __name__ == '__main__':
+    main()

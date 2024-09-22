@@ -7,7 +7,7 @@ if [ "$1" == "--clear" ]; then
   exit
 fi
 
-if [ ! -d "sec/" ]; then
+if [ ! -d "resources/" ]; then
   echo "Creating sec dir..."
   mkdir resources/
 fi
