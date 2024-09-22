@@ -1,0 +1,1 @@
+{"filename": "builds/ce790a929eabb8bd2cd1a0235658b6117222a5233f3811a7d410c836c96f4a0e.zip", "runtime": "python3.12", "artifacts_dir": "builds", "build_plan": [["zip", "../app/sqs/index.py", null]]}

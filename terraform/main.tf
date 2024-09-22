@@ -120,7 +120,7 @@ output "ipv4_address" {
 #####
 
 resource "aws_db_instance" "postgres" {
-  count                  = 1 # On/Off Switch
+  count                  = 0 # On/Off Switch
   identifier             = "guest-book-database"
   allocated_storage      = 10
   db_name                = "guest_book"
@@ -136,6 +136,53 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name = module.vpc.database_subnet_group_name
 }
 
-output "http_endpoint" {
-  value = aws_db_instance.postgres[0].endpoint
+//output "http_endpoint" {
+//  value = aws_db_instance.postgres[0].endpoint
+//}
+
+#####
+## SQS
+#####
+
+data "aws_iam_policy_document" "lambda_sqs" {
+  statement {
+    actions   = ["sqs:*"]
+    effect    = "Allow"
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "lambda_sqs_policy" {
+  name   = "lambda_sqs_policy"
+  path   = "/"
+  policy = data.aws_iam_policy_document.lambda_sqs.json
+}
+
+resource "aws_sqs_queue" "messages" {
+  name = "messages_queue"
+
+  tags = {
+    Name = "messages_queue"
+  }
+}
+
+module "sqs_lambda" {
+  source        = "terraform-aws-modules/lambda/aws"
+  function_name = "sqs_lambda"
+  description   = "Sends message to SQS queue"
+  handler       = "index.lambda_handler"
+  runtime       = "python3.12"
+  attach_policy = true
+  policy        = aws_iam_policy.lambda_sqs_policy.arn
+  //policy_json = data.aws_iam_policy_document.lambda_sqs.json
+  source_path = "../app/sqs/index.py"
+
+  environment_variables = {
+    QUEUE_NAME    = "messages_queue"
+    QUEUE_MESSAGE = "insert message here"
+  }
+
+  tags = {
+    Name = "sqs-lambda"
+  }
 }
