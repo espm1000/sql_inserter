@@ -17,6 +17,7 @@ locals {
 #####
 
 module "vpc" {
+  count                                  = var.vpc_count
   source                                 = "terraform-aws-modules/vpc/aws"
   name                                   = local.vpc_name
   create_database_subnet_group           = true
@@ -38,14 +39,16 @@ module "vpc" {
 #####
 
 resource "aws_key_pair" "ec2" {
+  count      = var.key_pair_count
   key_name   = "temp_key"
   public_key = file("resources/temp_key.pub")
 }
 
 resource "aws_security_group" "postgres_public" {
+  count       = var.security_group_postgres_ingress_count
   name        = "allow_pgsql"
   description = "Allow communication to Postgres on 5432"
-  vpc_id      = module.vpc.vpc_id
+  vpc_id      = count.index >= 1 ? module.vpc.vpc_id : null
 
   tags = {
     Name = "Allow PGSQL"
@@ -53,7 +56,8 @@ resource "aws_security_group" "postgres_public" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "allow_pgsql_in" {
-  security_group_id = aws_security_group.postgres_public.id
+  count             = var.security_group_postgres_ingress_count
+  security_group_id = aws_security_group.postgres_public[count.index].id
   cidr_ipv4         = "${module.ec2[0].private_ip}/32"
   from_port         = 5432
   ip_protocol       = "TCP"
@@ -61,7 +65,8 @@ resource "aws_vpc_security_group_ingress_rule" "allow_pgsql_in" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "allow_ssh_in" {
-  security_group_id = aws_security_group.postgres_public.id
+  count             = var.security_group_ssh_ingress_count
+  security_group_id = aws_security_group.postgres_public[count.index].id
   cidr_ipv4         = local.client_public_ip
   from_port         = 22
   ip_protocol       = "TCP"
@@ -69,7 +74,8 @@ resource "aws_vpc_security_group_ingress_rule" "allow_ssh_in" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "allow_all" {
-  security_group_id = aws_security_group.postgres_public.id
+  count             = var.security_group_ssh_ingress_count
+  security_group_id = aws_security_group.postgres_public[count.index].id
   cidr_ipv4         = local.client_public_ip
   ip_protocol       = "-1"
 }
@@ -96,16 +102,16 @@ data "aws_ami" "debian" {
 }
 
 module "ec2" {
-  count                       = 1
+  count                       = var.ec2_count
   depends_on                  = [module.vpc]
   ami                         = data.aws_ami.debian.id
   instance_type               = "t2.micro"
   source                      = "terraform-aws-modules/ec2-instance/aws"
   name                        = "debian"
-  vpc_security_group_ids      = [aws_security_group.postgres_public.id]
-  subnet_id                   = module.vpc.public_subnets[0]
+  vpc_security_group_ids      = [count.index >= 1 ? aws_security_group.postgres_public[count.index].id : null]
+  subnet_id                   = count.index >= 1 ? module.vpc.public_subnets[0] : null
   associate_public_ip_address = true
-  key_name                    = aws_key_pair.ec2.key_name
+  key_name                    = count.index >= 1 ? aws_key_pair.ec2[count.index].key_name : null
 
   tags = local.tags
 
@@ -120,7 +126,7 @@ output "ipv4_address" {
 #####
 
 resource "aws_db_instance" "postgres" {
-  count                  = 0 # On/Off Switch
+  count                  = var.rds_count
   identifier             = "guest-book-database"
   allocated_storage      = 10
   db_name                = "guest_book"
@@ -130,10 +136,10 @@ resource "aws_db_instance" "postgres" {
   username               = "appuser"
   password               = "Appuser7818!"
   skip_final_snapshot    = true
-  vpc_security_group_ids = [aws_security_group.postgres_public.id]
+  vpc_security_group_ids = [count.index >= 1 ? aws_security_group.postgres_public[count.index].id : null]
   publicly_accessible    = true
 
-  db_subnet_group_name = module.vpc.database_subnet_group_name
+  db_subnet_group_name = module.vpc[count.index].database_subnet_group_name
 }
 
 //output "http_endpoint" {
@@ -159,30 +165,41 @@ resource "aws_iam_policy" "lambda_sqs_policy" {
 }
 
 resource "aws_sqs_queue" "messages" {
-  name = "messages_queue"
+  count = var.sqs_count
+  name  = "messages_queue-${count.index}"
 
   tags = {
-    Name = "messages_queue"
+    Name = "messages_queue-${count.index}"
   }
 }
 
 module "sqs_lambda" {
+  count         = var.lambda_count
   source        = "terraform-aws-modules/lambda/aws"
   function_name = "sqs_lambda"
   description   = "Sends message to SQS queue"
-  handler       = "index.lambda_handler"
+  handler       = "main.lambda_handler"
   runtime       = "python3.12"
   attach_policy = true
   policy        = aws_iam_policy.lambda_sqs_policy.arn
   //policy_json = data.aws_iam_policy_document.lambda_sqs.json
-  source_path = "../app/sqs/index.py"
+  source_path = "../app/sqs/main.py"
 
   environment_variables = {
-    QUEUE_NAME    = "messages_queue"
+    QUEUE_NAME    = var.sqs_count >= 1 ? aws_sqs_queue.messages[var.sqs_count].name : null
     QUEUE_MESSAGE = "insert message here"
   }
 
   tags = {
     Name = "sqs-lambda"
   }
+}
+
+#####
+## SNS
+#####
+
+resource "aws_sns_topic" "send_data" {
+  count = var.sns_topic_count
+  name  = "send_data_to_queues"
 }

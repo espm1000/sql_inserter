@@ -4,9 +4,11 @@
 
 A simple pipeline/environment that will:  
 
-* Send a message to SQS  
-* Write an entry into a database (postgres/mysql)  
-* Execute SNS to notify when finished or error
+* Event will be pushblished to SNS Topic  
+* SNS Topic will publish message to SQS Queue(s)  
+* Lambda service will retrieve message from Queue  
+* Lambda will write an entry into a database (postgres/mysql)  
+* Explore Lambda -> Notify client  
 
 ## Assumptions  
 
