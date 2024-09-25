@@ -1,0 +1,10 @@
+sqs_count                             = 0
+lambda_count                          = 0
+vpc_count                             = 0
+rds_count                             = 0
+security_group_ssh_ingress_count      = 0
+security_group_postgres_ingress_count = 0
+ec2_count                             = 0
+key_pair_count                        = 0
+sns_topic_count                       = 0
+
