@@ -34,3 +34,7 @@ variable "security_group_postgres_ingress_count" {
 variable "sns_topic_count" {
   type = number
 }
+
+variable "function_source_path" {
+  type = string
+}

@@ -176,18 +176,19 @@ resource "aws_sqs_queue" "messages" {
 module "sqs_lambda" {
   count         = var.lambda_count
   source        = "terraform-aws-modules/lambda/aws"
-  function_name = "sqs_lambda"
+  function_name = "sqs_lambda-${count.index}"
   description   = "Sends message to SQS queue"
   handler       = "main.lambda_handler"
   runtime       = "python3.12"
   attach_policy = true
   policy        = aws_iam_policy.lambda_sqs_policy.arn
   //policy_json = data.aws_iam_policy_document.lambda_sqs.json
-  source_path = "../app/sqs/main.py"
+  source_path = var.function_source_path
 
   environment_variables = {
-    QUEUE_NAME    = var.sqs_count >= 1 ? aws_sqs_queue.messages[var.sqs_count].name : null
+    QUEUE_NAME    = var.sqs_count >= 1 ? aws_sqs_queue.messages[count.index].name : null
     QUEUE_MESSAGE = "insert message here"
+    TOPIC_ARN     = aws_sns_topic.send_data[0].arn
   }
 
   tags = {

@@ -1,0 +1,22 @@
+{
+    "Records": [
+        {
+            "EventSource": "aws:sns",
+            "EventVersion": "1.0",
+            "EventSubscriptionArn": "arn:aws:sns:us-east-1: 677538000670:send_data_to_queues: 086b2326-c3e7-428e-9902-1999858ac7f2",
+            "Sns": {
+                "Type": "Notification",
+                "MessageId": "719876dd-70b1-5ed4-b4e0-29ad71f9e11e",
+                "TopicArn": "arn:aws:sns:us-east-1: 677538000670:send_data_to_queues",
+                "Subject": None,
+                "Message": "asfdg",
+                "Timestamp": "2024-09-27T00: 40: 40.683Z",
+                "SignatureVersion": "1",
+                "Signature": "Gh5lRE7bWfUhfLwJ0aVJ+7EYtviAaVTyYSihR2hf7NZRTC4ccSb7J0OXm83N8l1cRb+O29UqM3NbV3yiG87oxE+AUJP9ro1a0FlA2w6XmeZTt5XNVifkub3NsTRg6EkB+tYl3YrZfqlY7PdM+VDfCWVoIawncRAenD1rVGH5hNQHGmg/69w8oCwv3pc9XVG9teyaehHrePwXaJwtQE8EqQotfL9+y9Yh4/UbTwmVXBau6cVWUjfMEjqM/QZunBM+048CkePQikyegHPI10hYu8JeQTT+85YOhg94b0uQKyaNEuF4x4u75ND5nttZBau76yB4sPU9kdas1rShI6F7wQ==",
+                "SigningCertUrl": "https: //sns.us-east-1.amazonaws.com/SimpleNotificationService-60eadc530605d63b8e62a523676ef735.pem",
+                "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:677538000670:send_data_to_queues:086b2326-c3e7-428e-9902-1999858ac7f2",
+                "MessageAttributes": {}
+            }
+        }
+    ]
+}

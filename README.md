@@ -10,6 +10,10 @@ A simple pipeline/environment that will:
 * Lambda will write an entry into a database (postgres/mysql)  
 * Explore Lambda -> Notify client  
 
+## Practical Idea  
+
+* Get the weather from the National Weather Service and publish via SNS  
+
 ## Assumptions  
 
 * Application code written in Python  
