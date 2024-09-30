@@ -204,3 +204,34 @@ resource "aws_sns_topic" "send_data" {
   count = var.sns_topic_count
   name  = "send_data_to_queues"
 }
+
+#####
+## EVENTBRIDGE
+#####
+
+module "lambda_eventbridge" {
+  source = "terraform-aws-modules/eventbridge/aws"
+
+  create_bus           = false
+  attach_lambda_policy = true
+  lambda_target_arns   = [module.sqs_lambda[0].lambda_function_arn]
+
+  rules = {
+    crons = {
+      description         = "Every X Minutes"
+      schedule_expression = "rate(2 minutes)"
+    }
+  }
+
+  targets = {
+    crons = [
+      {
+        name  = module.sqs_lambda[0].lambda_function_name
+        arn   = module.sqs_lambda[0].lambda_function_arn
+        input = jsonencode({ "job" : "cron-by-rate" })
+
+      }
+
+    ]
+  }
+}
