@@ -38,3 +38,11 @@ variable "sns_topic_count" {
 variable "function_source_path" {
   type = string
 }
+
+variable "eventbridge_count" {
+  type = number
+}
+
+variable "lambda_handler" {
+  type = string
+}

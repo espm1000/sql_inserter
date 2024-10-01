@@ -178,12 +178,19 @@ module "sqs_lambda" {
   source        = "terraform-aws-modules/lambda/aws"
   function_name = "sqs_lambda-${count.index}"
   description   = "Sends message to SQS queue"
-  handler       = "main.lambda_handler"
+  handler       = var.lambda_handler
   runtime       = "python3.12"
   attach_policy = true
   policy        = aws_iam_policy.lambda_sqs_policy.arn
-  //policy_json = data.aws_iam_policy_document.lambda_sqs.json
-  source_path = var.function_source_path
+  source_path   = var.function_source_path
+
+  create_current_version_allowed_triggers = false
+  allowed_triggers = {
+    AllowInvokeFromCloudWatch = {
+      principal  = "events.amazonaws.com"
+      source_arn = module.lambda_eventbridge[0].eventbridge_rule_arns["crons"]
+    }
+  }
 
   environment_variables = {
     QUEUE_NAME    = var.sqs_count >= 1 ? aws_sqs_queue.messages[count.index].name : null
@@ -210,9 +217,11 @@ resource "aws_sns_topic" "send_data" {
 #####
 
 module "lambda_eventbridge" {
+  count  = var.eventbridge_count
   source = "terraform-aws-modules/eventbridge/aws"
 
   create_bus           = false
+  create_role          = true
   attach_lambda_policy = true
   lambda_target_arns   = [module.sqs_lambda[0].lambda_function_arn]
 
@@ -234,4 +243,8 @@ module "lambda_eventbridge" {
 
     ]
   }
+}
+
+output "events" {
+  value = module.lambda_eventbridge[0].eventbridge_rule_arns
 }
