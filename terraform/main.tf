@@ -244,7 +244,3 @@ module "lambda_eventbridge" {
     ]
   }
 }
-
-output "events" {
-  value = module.lambda_eventbridge[0].eventbridge_rule_arns
-}
