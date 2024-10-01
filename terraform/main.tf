@@ -188,7 +188,7 @@ module "sqs_lambda" {
   environment_variables = {
     QUEUE_NAME    = var.sqs_count >= 1 ? aws_sqs_queue.messages[count.index].name : null
     QUEUE_MESSAGE = "insert message here"
-    TOPIC_ARN     = aws_sns_topic.send_data[0].arn
+    TOPIC_ARN     = var.sns_topic_count >= 1 ? aws_sns_topic.send_data[0].arn : ""
   }
 
   tags = {
