@@ -251,3 +251,27 @@ module "lambda_eventbridge" {
     ]
   }
 }
+
+#####
+## ELASTICSEARCH
+#####
+
+module "elasticsearch" {
+  count                   = var.es_count
+  source                  = "cloudposse/elasticsearch/aws"
+  namespace               = var.es_namespace
+  stage                   = var.es_stage
+  dns_zone_id             = var.es_dns_zone_id
+  security_groups         = [""]
+  vpc_id                  = module.vpc[count.index].vpc_id
+  subnet_ids              = [module.vpc[count.index].public_subnets]
+  zone_awareness_enabled  = true
+  elasticsearch_version   = var.es_version
+  instance_type           = var.es_instance_type
+  ebs_volume_size         = var.es_ebs_vol_size
+  iam_role_arns           = [""]
+  iam_actions             = [""]
+  encrypt_at_rest_enabled = true
+  kibana_subdomain_name   = var.kibana_subdomain_name
+
+}

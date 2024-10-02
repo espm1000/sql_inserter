@@ -54,3 +54,35 @@ variable "eventbridge_schedule_expression" {
 variable "generic_security_group_count" {
   type = string
 }
+
+variable "es_namespace" {
+  type = string
+}
+
+variable "es_stage" {
+  type = string
+}
+
+variable "es_dns_zone_id" {
+  type = string
+}
+
+variable "es_version" {
+  type = string
+}
+
+variable "es_instance_type" {
+  type = string
+}
+
+variable "es_ebs_vol_size" {
+  type = string
+}
+
+variable "kibana_subdomain_name" {
+  type = string
+}
+
+variable "es_count" {
+  type = number
+}
