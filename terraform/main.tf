@@ -59,7 +59,7 @@ resource "aws_security_group" "generic" {
   count       = var.generic_security_group_count
   name        = "generic-security-group-${count.index}"
   description = "Generic Security group that allows nothing"
-  vpc_id      = var.vpc_count == 1 ? module.vpc.vpc_id : null
+  vpc_id      = var.vpc_count == 1 ? module.vpc[0].vpc_id : null
 }
 
 resource "aws_vpc_security_group_ingress_rule" "allow_pgsql_in" {
@@ -157,19 +157,19 @@ resource "aws_db_instance" "postgres" {
 ## SQS
 #####
 
-data "aws_iam_policy_document" "lambda_sqs" {
+data "aws_iam_policy_document" "lambda" {
   statement {
-    actions   = ["sqs:*"]
+    actions   = ["sqs:*", "ec2:*"]
     effect    = "Allow"
     resources = ["*"]
   }
 }
 
-resource "aws_iam_policy" "lambda_sqs_policy" {
-  count  = var.sqs_count
-  name   = "lambda_sqs_policy"
+resource "aws_iam_policy" "lambda_policy" {
+  count  = var.lambda_count
+  name   = "lambda_policy"
   path   = "/"
-  policy = data.aws_iam_policy_document.lambda_sqs.json
+  policy = data.aws_iam_policy_document.lambda.json
 }
 
 resource "aws_sqs_queue" "messages" {
@@ -181,25 +181,25 @@ resource "aws_sqs_queue" "messages" {
   }
 }
 
-module "sqs_lambda" {
+module "lambda" {
   count                                   = var.lambda_count
   source                                  = "terraform-aws-modules/lambda/aws"
-  function_name                           = "sqs_lambda-${count.index}"
+  function_name                           = "lambda-${count.index}"
   description                             = "Sends message to SQS queue"
   handler                                 = var.lambda_handler
   runtime                                 = "python3.12"
-  attach_policy                           = var.sqs_count >= 1 ? true : false
-  policy                                  = var.sqs_count >= 1 ? aws_iam_policy.lambda_sqs_policy[count.index].arn : ""
+  attach_policy                           = true
+  policy                                  = aws_iam_policy.lambda_policy[count.index].arn
   source_path                             = var.function_source_path
   create_current_version_allowed_triggers = false
   vpc_security_group_ids                  = [var.vpc_count == 1 ? aws_security_group.generic[count.index].id : ""]
   vpc_subnet_ids                          = [var.vpc_count == 1 ? module.vpc[count.index].private_subnets[0] : ""]
-  allowed_triggers = {
-    AllowInvokeFromCloudWatch = {
-      principal  = "events.amazonaws.com"
-      source_arn = module.lambda_eventbridge[0].eventbridge_rule_arns["crons"]
-    }
-  }
+  //allowed_triggers = {
+  //  AllowInvokeFromCloudWatch = {
+  //    principal  = "events.amazonaws.com"
+  //    source_arn = module.lambda_eventbridge[0].eventbridge_rule_arns["crons"]
+  //  }
+  //}
 
   environment_variables = {
     QUEUE_NAME    = var.sqs_count >= 1 ? aws_sqs_queue.messages[count.index].name : null
@@ -208,7 +208,7 @@ module "sqs_lambda" {
   }
 
   tags = {
-    Name = "sqs-lambda"
+    Name = "dev-lambda-${count.index}"
   }
 }
 
@@ -232,7 +232,7 @@ module "lambda_eventbridge" {
   create_bus           = false
   create_role          = true
   attach_lambda_policy = true
-  lambda_target_arns   = [module.sqs_lambda[0].lambda_function_arn]
+  lambda_target_arns   = [module.lambda[0].lambda_function_arn]
 
   rules = {
     crons = {
@@ -244,12 +244,10 @@ module "lambda_eventbridge" {
   targets = {
     crons = [
       {
-        name  = module.sqs_lambda[0].lambda_function_name
-        arn   = module.sqs_lambda[0].lambda_function_arn
+        name  = module.lambda[0].lambda_function_name
+        arn   = module.lambda[0].lambda_function_arn
         input = jsonencode({ "job" : "cron-by-rate" })
-
       }
-
     ]
   }
 }
