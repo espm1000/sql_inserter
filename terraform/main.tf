@@ -45,7 +45,7 @@ resource "aws_key_pair" "ec2" {
 }
 
 resource "aws_security_group" "postgres_public" {
-  count       = var.security_group_postgres_ingress_count
+  count       = var.rds_count >= 1 ? 1 : 0
   name        = "allow_pgsql"
   description = "Allow communication to Postgres on 5432"
   vpc_id      = count.index >= 1 ? module.vpc.vpc_id : null
@@ -55,10 +55,17 @@ resource "aws_security_group" "postgres_public" {
   }
 }
 
+resource "aws_security_group" "generic" {
+  count       = var.generic_security_group_count
+  name        = "generic-security-group-${count.index}"
+  description = "Generic Security group that allows nothing"
+  vpc_id      = var.vpc_count == 1 ? module.vpc.vpc_id : null
+}
+
 resource "aws_vpc_security_group_ingress_rule" "allow_pgsql_in" {
-  count             = var.security_group_postgres_ingress_count
+  count             = var.rds_count >= 1 ? 1 : 0
   security_group_id = aws_security_group.postgres_public[count.index].id
-  cidr_ipv4         = "${module.ec2[0].private_ip}/32"
+  cidr_ipv4         = var.vpc_count == 1 ? "${module.ec2[0].private_ip}/32" : null
   from_port         = 5432
   ip_protocol       = "TCP"
   to_port           = 5432
@@ -159,6 +166,7 @@ data "aws_iam_policy_document" "lambda_sqs" {
 }
 
 resource "aws_iam_policy" "lambda_sqs_policy" {
+  count  = var.sqs_count
   name   = "lambda_sqs_policy"
   path   = "/"
   policy = data.aws_iam_policy_document.lambda_sqs.json
@@ -174,17 +182,18 @@ resource "aws_sqs_queue" "messages" {
 }
 
 module "sqs_lambda" {
-  count         = var.lambda_count
-  source        = "terraform-aws-modules/lambda/aws"
-  function_name = "sqs_lambda-${count.index}"
-  description   = "Sends message to SQS queue"
-  handler       = var.lambda_handler
-  runtime       = "python3.12"
-  attach_policy = true
-  policy        = aws_iam_policy.lambda_sqs_policy.arn
-  source_path   = var.function_source_path
-
+  count                                   = var.lambda_count
+  source                                  = "terraform-aws-modules/lambda/aws"
+  function_name                           = "sqs_lambda-${count.index}"
+  description                             = "Sends message to SQS queue"
+  handler                                 = var.lambda_handler
+  runtime                                 = "python3.12"
+  attach_policy                           = var.sqs_count >= 1 ? true : false
+  policy                                  = var.sqs_count >= 1 ? aws_iam_policy.lambda_sqs_policy[count.index].arn : ""
+  source_path                             = var.function_source_path
   create_current_version_allowed_triggers = false
+  vpc_security_group_ids                  = [var.vpc_count == 1 ? aws_security_group.generic[count.index].id : ""]
+  vpc_subnet_ids                          = [var.vpc_count == 1 ? module.vpc[count.index].private_subnets[0] : ""]
   allowed_triggers = {
     AllowInvokeFromCloudWatch = {
       principal  = "events.amazonaws.com"
@@ -228,7 +237,7 @@ module "lambda_eventbridge" {
   rules = {
     crons = {
       description         = "Every X Minutes"
-      schedule_expression = "rate(2 minutes)"
+      schedule_expression = var.eventbridge_schedule_expression
     }
   }
 

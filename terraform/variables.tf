@@ -46,3 +46,11 @@ variable "eventbridge_count" {
 variable "lambda_handler" {
   type = string
 }
+
+variable "eventbridge_schedule_expression" {
+  type = string
+}
+
+variable "generic_security_group_count" {
+  type = string
+}
